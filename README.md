@@ -4,6 +4,13 @@ This example gives every Cloudflare Workers preview deployment its own isolated 
 
 A single deploy script (`scripts/deploy.ts`) is run by [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) and drives the whole flow: it creates (or reuses) the Neon branch, provisions Hyperdrive, injects the connection strings, and deploys the Worker — for both production and previews.
 
+## Highlights
+
+- An isolated Neon database branch for every Cloudflare preview deployment, created automatically.
+- A dedicated Cloudflare Hyperdrive config per branch — production and every preview — refreshed on every deploy.
+- One deploy script drives everything: no GitHub Actions workflows, no Neon GitHub App.
+- Abandoned Neon branches and Hyperdrive configs clean themselves up (7-day TTL plus an orphan sweep on each deploy).
+
 ## How it works
 
 Deploys are triggered by the [Cloudflare Workers and Pages GitHub App](https://github.com/apps/cloudflare-workers-and-pages), not by workflows in this repo. On every build, Workers Builds runs `scripts/deploy.ts`, which branches on the Git branch being built:
