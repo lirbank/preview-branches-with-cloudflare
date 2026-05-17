@@ -1,5 +1,7 @@
 # Preview branches with Cloudflare
 
+> **Beta:** This is a new and novel approach that has not been fully battle-tested in production.
+
 This example gives every Cloudflare Workers preview deployment its own isolated [Neon](https://neon.tech/?ref=github) database branch, fronted by a dedicated [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) config — created and wired up automatically on every push.
 
 A single deploy script (`scripts/deploy.ts`) is run by [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) and drives the whole flow: it creates (or reuses) the Neon branch, provisions Hyperdrive, injects the connection strings, and deploys the Worker — for both production and previews.
@@ -115,8 +117,6 @@ Do not run `wrangler deploy` locally. A local deploy would inherit the latest Wo
 
 - One Neon branch per Git branch, reused across commits. Test data created during review persists into the next preview deploy. A force-push that rewrites schema-changing commits does not rewind the database.
 - Cleanup is TTL-driven. Abandoned Neon branches expire after 7 days; the TTL is refreshed on every deploy. Orphaned Hyperdrive configs are removed at the start of the next deploy — long-idle projects keep orphans until something deploys again.
-- Non-default branches always parent on Neon's default branch, so a stacked branch does not see an un-merged parent's schema.
-- On the first deploy of a new Hyperdrive config, the binding may not appear in the Cloudflare dashboard's Bindings tab for a deploy or two. The runtime is unaffected.
 
 ## Resources
 
