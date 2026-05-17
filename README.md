@@ -6,10 +6,8 @@ A single deploy script (`scripts/deploy.ts`) is run by [Cloudflare Workers Build
 
 ## Highlights
 
-- An isolated Neon database branch for every Cloudflare preview deployment, created automatically.
-- A dedicated Cloudflare Hyperdrive config per branch — production and every preview — refreshed on every deploy.
-- One deploy script drives everything: no GitHub Actions workflows, no Neon GitHub App.
-- Abandoned Neon branches and Hyperdrive configs clean themselves up (7-day TTL plus an orphan sweep on each deploy).
+- Per-Git-branch preview deploys, each backed by an isolated Neon branch.
+- Cloudflare Hyperdrive set up automatically for every branch, including previews.
 
 ## How it works
 
@@ -19,6 +17,8 @@ Deploys are triggered by the [Cloudflare Workers and Pages GitHub App](https://g
 - Push to any other branch → preview deploy, backed by a Neon branch dedicated to that Git branch and reused across commits.
 
 The connection string reaches the Worker as `env.HYPERDRIVE` (Hyperdrive binding) and as plain `env.DATABASE_URL` (pooled) and `env.DATABASE_URL_UNPOOLED` (unpooled) values.
+
+Hyperdrive is required here, not a nice-to-have: Neon's WebSocket driver doesn't run on Cloudflare Workers, and Neon's HTTP driver doesn't support interactive transactions. That leaves the `pg` TCP driver — and Hyperdrive is what makes TCP Postgres from a Worker fast.
 
 There are no GitHub Actions workflows and no Neon GitHub App or `create-branch-action` — everything is handled by the one deploy script.
 
