@@ -14,3 +14,7 @@
 1. In CF Dashboard, create a secret under _Build_ (not under _Variables and Secrets_) called `NEON_PROJECT_ID` and add the Neon API key.
 1. In CF Dashboard, create a variable under _Build_ (not under _Variables and Secrets_) called `NEON_API_KEY` and set it to you Neon project ID.
 1. Rebuild the CF Worker, it should now work
+
+# Placement
+
+Set _placement_ in wrangler.jsonc to the same region as your Neon database
