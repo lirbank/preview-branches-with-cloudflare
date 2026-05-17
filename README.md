@@ -95,8 +95,6 @@ You do not need to create a Cloudflare API token by hand. Workers Builds injects
 
 6. Rebuild the Worker. The production deploy now succeeds. Open a branch to get a preview deployment with its own Neon branch.
 
-   > **VERIFY:** the preview URL format produced by `wrangler versions upload --preview-alias`.
-
 ## Local development
 
 1. `cp .env.example .env`
