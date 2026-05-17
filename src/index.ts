@@ -11,8 +11,8 @@ export default {
     // NOTE: The plain connection URLs are also available for convenience:
     // - env.DATABASE_URL
     // - env.DATABASE_URL_UNPOOLED
-    console.log("DATABASE_URL", env.DATABASE_URL);
-    console.log("DATABASE_URL_UNPOOLED", env.DATABASE_URL_UNPOOLED);
+    // console.log("DATABASE_URL", env.DATABASE_URL);
+    // console.log("DATABASE_URL_UNPOOLED", env.DATABASE_URL_UNPOOLED);
 
     await client.connect();
 
@@ -23,10 +23,7 @@ export default {
       // Clean up the client connection in the background
       ctx.waitUntil(client.end());
 
-      return Response.json({
-        hyperdrive: env.HYPERDRIVE.connectionString,
-        result: result.rows,
-      });
+      return Response.json({ result: result.rows });
     } catch (e) {
       return Response.json(
         { error: e instanceof Error ? e.message : e },
