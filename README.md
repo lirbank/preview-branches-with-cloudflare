@@ -2,7 +2,7 @@
 
 This example gives every Cloudflare Workers preview deployment its own isolated [Neon](https://neon.tech/?ref=github) database branch, fronted by a dedicated [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) config — created and wired up automatically on every push.
 
-There are no GitHub Actions workflows. A single deploy script (`scripts/deploy.ts`) is run by [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) and drives the whole flow: it creates (or reuses) the Neon branch, provisions Hyperdrive, injects the connection strings, and deploys the Worker — for both production and previews.
+A single deploy script (`scripts/deploy.ts`) is run by [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) and drives the whole flow: it creates (or reuses) the Neon branch, provisions Hyperdrive, injects the connection strings, and deploys the Worker — for both production and previews.
 
 ## How it works
 
@@ -12,6 +12,8 @@ Deploys are triggered by the [Cloudflare Workers and Pages GitHub App](https://g
 - Push to any other branch → preview deploy, backed by a Neon branch dedicated to that Git branch and reused across commits.
 
 The connection string reaches the Worker as `env.HYPERDRIVE` (Hyperdrive binding) and as plain `env.DATABASE_URL` (pooled) and `env.DATABASE_URL_UNPOOLED` (unpooled) values.
+
+There are no GitHub Actions workflows and no Neon GitHub App or `create-branch-action` — everything is handled by the one deploy script.
 
 ### Preview flow
 
@@ -66,15 +68,15 @@ You do not need to create a Cloudflare API token by hand. Workers Builds injects
    bun install
    ```
 
-2. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to the region closest to your Neon database (e.g. `aws:us-east-1`). Keeping [compute close to the database](https://www.lirbank.com/liberate-yourself-from-infrastructure-over-planning) is what makes this fast.
+2. Create a [Neon project](https://neon.tech/?ref=github) (the free tier is enough), choosing a region close to where your Worker will run. Note the **project ID** and create a **Neon API key** for it — see [Manage API keys](https://neon.tech/docs/manage/api-keys). The same project is used for production, previews, and local development.
 
-3. In the Cloudflare dashboard, go to **Workers & Pages → Create application → Continue with GitHub** and link this repository. On the **Set up your application** step, set both:
+3. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to match your Neon project's region (e.g. `aws:us-east-1`). Keeping [compute close to the database](https://www.lirbank.com/liberate-yourself-from-infrastructure-over-planning) is what makes this fast.
+
+4. In the Cloudflare dashboard, go to **Workers & Pages → Create application → Continue with GitHub** and link this repository. On the **Set up your application** step, set both:
    - **Deploy command**: `scripts/deploy.ts`
    - **Non-production branch deploy command**: `scripts/deploy.ts`
 
    Click **Deploy**. The first build fails — expected, the Neon variables aren't set yet. The script decides production vs. preview internally from `WORKERS_CI_BRANCH`.
-
-4. Create a Neon API key for your project — see [Manage API keys](https://neon.tech/docs/manage/api-keys).
 
 5. In the Worker's settings, under **Build** (not **Variables and Secrets**), add:
 
@@ -91,11 +93,10 @@ You do not need to create a Cloudflare API token by hand. Workers Builds injects
 ## Local development
 
 1. `cp .env.example .env`
-2. Create a Neon project (place it in the region you set for `placement`, e.g. AWS US East 1 / N. Virginia).
-3. Create a Neon branch for development (e.g. `dev`).
-4. Copy its **pooled** connection string into `DATABASE_URL` in `.env`.
-5. Copy its **unpooled** connection string into both `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` and `DATABASE_URL_UNPOOLED` in `.env`.
-6. Run the app locally:
+2. In the **same Neon project** from setup, create a branch for development (e.g. `dev`).
+3. Copy its **pooled** connection string into `DATABASE_URL` in `.env`.
+4. Copy its **unpooled** connection string into both `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` and `DATABASE_URL_UNPOOLED` in `.env`.
+5. Run the app locally:
 
    ```bash
    bun run dev
