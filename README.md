@@ -18,7 +18,7 @@ There are no GitHub Actions workflows and no Neon GitHub App or `create-branch-a
 ### Preview flow
 
 1. Push to a non-default Git branch.
-2. The Cloudflare GitHub App triggers a non-production build, which runs `bun run scripts/deploy.ts`.
+2. The Cloudflare GitHub App triggers a non-production build, which runs `scripts/deploy.ts`.
 3. The script deletes any Hyperdrive config whose Neon branch no longer exists.
 4. It looks up the Neon branch named `preview-<branch-slug>`, reusing it if present or creating it with a 7-day TTL.
 5. It fetches the branch's pooled and unpooled connection URIs.
@@ -29,7 +29,7 @@ There are no GitHub Actions workflows and no Neon GitHub App or `create-branch-a
 ### Production flow
 
 1. Push to the default Git branch (`main`).
-2. The Cloudflare GitHub App triggers a production build, which runs `bun run scripts/deploy.ts`.
+2. The Cloudflare GitHub App triggers a production build, which runs `scripts/deploy.ts`.
 3. The script deletes any Hyperdrive config whose Neon branch no longer exists.
 4. It finds Neon's default branch and fetches its pooled and unpooled connection URIs.
 5. It upserts a Hyperdrive config named `preview-branches-with-cloudflare--production` pointing at the unpooled URI.
