@@ -66,53 +66,42 @@ You do not need to create a Cloudflare API token by hand. Workers Builds injects
    bun install
    ```
 
-2. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to the region closest to your Neon database (e.g. `aws:us-east-1`).
+2. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to the region closest to your Neon database (e.g. `aws:us-east-1`). Keeping [compute close to the database](https://www.lirbank.com/liberate-yourself-from-infrastructure-over-planning) is what makes this fast.
 
-3. Create a Worker on Cloudflare and connect this repository to it via the Cloudflare Workers and Pages GitHub App, so deployments run through Workers Builds.
+3. In the Cloudflare dashboard, go to **Workers & Pages → Create application → Continue with GitHub** and link this repository. On the **Set up your application** step, set both:
+   - **Deploy command**: `scripts/deploy.ts`
+   - **Non-production branch deploy command**: `scripts/deploy.ts`
 
-   > **VERIFY:** exact dashboard path (Workers & Pages → Create → connect to Git) — confirm when walking the steps.
+   Click **Deploy**. The first build fails — expected, the Neon variables aren't set yet. The script decides production vs. preview internally from `WORKERS_CI_BRANCH`.
 
-4. In the Worker's Workers Builds settings, add these build environment variables:
+4. Create a Neon API key for your project — see [Manage API keys](https://neon.tech/docs/manage/api-keys).
 
-   | Variable             | Type   | Required | Value                                                    |
-   | -------------------- | ------ | -------- | -------------------------------------------------------- |
-   | `NEON_API_KEY`       | Secret | Yes      | Neon API key with branch create + connection-string read |
-   | `NEON_PROJECT_ID`    | Text   | Yes      | Your Neon project ID                                     |
-   | `GIT_DEFAULT_BRANCH` | Text   | No       | Git default branch name (defaults to `main`)             |
+5. In the Worker's settings, under **Build** (not **Variables and Secrets**), add:
 
-   > **VERIFY:** location and the Secret/Text distinction for build variables — confirm in the dashboard.
+   | Variable             | Type   | Required | Value                                        |
+   | -------------------- | ------ | -------- | -------------------------------------------- |
+   | `NEON_API_KEY`       | Secret | Yes      | The Neon API key                             |
+   | `NEON_PROJECT_ID`    | Text   | Yes      | Your Neon project ID                         |
+   | `GIT_DEFAULT_BRANCH` | Text   | No       | Git default branch name (defaults to `main`) |
 
-5. Set both deploy commands to the deploy script:
-   - Production deploy command: `bun run scripts/deploy.ts`
-   - Non-production deploy command: `bun run scripts/deploy.ts`
-
-   The script decides production vs. preview internally from `WORKERS_CI_BRANCH`.
-
-   > **VERIFY:** exact field names for the production / non-production deploy commands — confirm in the dashboard.
-
-6. Push to `main` for the first production deploy. Then open a branch to get a preview deployment with its own Neon branch.
+6. Rebuild the Worker. The production deploy now succeeds. Open a branch to get a preview deployment with its own Neon branch.
 
    > **VERIFY:** the preview URL format produced by `wrangler versions upload --preview-alias`.
 
 ## Local development
 
-```bash
-cp .env.example .env
-```
+1. `cp .env.example .env`
+2. Create a Neon project (place it in the region you set for `placement`, e.g. AWS US East 1 / N. Virginia).
+3. Create a Neon branch for development (e.g. `dev`).
+4. Copy its **pooled** connection string into `DATABASE_URL` in `.env`.
+5. Copy its **unpooled** connection string into both `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` and `DATABASE_URL_UNPOOLED` in `.env`.
+6. Run the app locally:
 
-Fill in the connection string(s) in `.env`, then start the dev server:
+   ```bash
+   bun run dev
+   ```
 
-```bash
-bun run dev
-```
-
-After changing bindings in [`wrangler.jsonc`](wrangler.jsonc), regenerate types:
-
-```bash
-bun run cf-typegen
-```
-
-> **VERIFY:** that `bun run dev` picks up the local Hyperdrive connection string from `.env`.
+After changing bindings in [`wrangler.jsonc`](wrangler.jsonc), regenerate types with `bun run cf-typegen`.
 
 Do not run `wrangler deploy` locally. A local deploy would inherit the latest Worker version's secret (typically the most recent preview's database URL) and clobber production. All deploys go through Workers Builds.
 
@@ -129,3 +118,4 @@ Do not run `wrangler deploy` locally. A local deploy would inherit the latest Wo
 - [Neon branching](https://neon.tech/docs/introduction/branching)
 - [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)
 - [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/)
+- [neon-preview-deployments](https://github.com/lirbank/neon-preview-deployments) — deeper analysis of preview-deployment strategies across hosting providers
