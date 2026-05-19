@@ -79,7 +79,7 @@ You do not need to create a Cloudflare API token by hand. Workers Builds injects
 
 2. Create a [Neon project](https://neon.tech/?ref=github) (the free tier is enough), choosing a region close to where your Worker will run. Note the **project ID** and create a **Neon API key** for it — see [Manage API keys](https://neon.tech/docs/manage/api-keys). The same project is used for production, previews, and local development.
 
-3. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to match your Neon project's region (e.g. `aws:us-east-1`). Keeping [compute close to the database](https://www.lirbank.com/liberate-yourself-from-infrastructure-over-planning) is what makes this fast.
+3. Set `placement.region` in [`wrangler.jsonc`](wrangler.jsonc) to match your Neon project's region (e.g. `aws:us-east-1`). Keeping compute close to the database is what makes this fast.
 
 4. In the Cloudflare dashboard, go to **Workers & Pages → Create application → Continue with GitHub** and link this repository. On the **Set up your application** step, set both:
    - **Deploy command**: `scripts/deploy.ts`
