@@ -55,7 +55,15 @@ Production credentials are fetched from Neon on every deploy.
 - [node-postgres (`pg`)](https://node-postgres.com/) — Postgres client
 - [Bun](https://bun.sh) — runtime and package manager
 
-This example ships a minimal Worker that runs one sample query. It has no schema, migrations, or seed data — it demonstrates the preview-branching and connection-injection mechanism, not application code.
+This example ships a minimal Worker that runs one sample query — it demonstrates the preview-branching and connection-injection mechanism, not application code.
+
+### Database migrations
+
+The repo ships a [Drizzle](https://orm.drizzle.team/) schema at [`src/lib/db/schema.ts`](src/lib/db/schema.ts) with the generated SQL under [`src/lib/db/migrations/`](src/lib/db/migrations/). Edit the schema and run `bun run db:generate` to produce a new migration; commit both. Drizzle is used here only as a schema and migrations tool — the Worker itself queries Postgres with vanilla `pg` over Hyperdrive.
+
+### Pre-deploy hook
+
+`scripts/deploy.ts` is project-agnostic. If a sibling [`scripts/pre-deploy.ts`](scripts/pre-deploy.ts) exists, it is invoked after the Neon branch is provisioned and before the Worker is deployed, with `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_BRANCH_ID`, `NEON_BRANCH_NAME`, and `DEPLOY_ENV` in its environment. This repo's hook runs `drizzle-kit migrate` against the unpooled URI, so every preview gets an isolated, fully-migrated database before the Worker version goes live. A non-zero exit fails the deploy; the Neon branch and Hyperdrive config are left intact so the next push retries cleanly. Delete `scripts/pre-deploy.ts` if you don't need it.
 
 ## Prerequisites
 

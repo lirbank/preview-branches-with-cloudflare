@@ -1,8 +1,46 @@
 #!/usr/bin/env bun
 
-import { readFile, writeFile, unlink } from "node:fs/promises";
+import { access, readFile, writeFile, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const PRE_DEPLOY_HOOK = "scripts/pre-deploy.ts";
+
+/**
+ * Runs `scripts/pre-deploy.ts` if it exists, with the provisioned Neon
+ * connection details exposed via env. Used for project-specific work that
+ * must happen against the freshly-created Neon branch before the Worker is
+ * deployed — typically database migrations. A non-zero exit fails the
+ * deploy; the Neon branch and Hyperdrive config are left intact so the next
+ * push retries cleanly.
+ */
+async function runPreDeployHook(args: {
+  pooledUri: string;
+  unpooledUri: string;
+  branchId: string;
+  branchName: string;
+  deployEnv: "production" | "preview";
+}): Promise<void> {
+  try {
+    await access(PRE_DEPLOY_HOOK);
+  } catch {
+    console.log(`No ${PRE_DEPLOY_HOOK} found — skipping pre-deploy hook.`);
+    return;
+  }
+
+  console.log(`=== Running pre-deploy hook: ${PRE_DEPLOY_HOOK} ===`);
+
+  await Bun.$`bun run ${PRE_DEPLOY_HOOK}`.env({
+    ...process.env,
+    DATABASE_URL: args.pooledUri,
+    DATABASE_URL_UNPOOLED: args.unpooledUri,
+    NEON_BRANCH_ID: args.branchId,
+    NEON_BRANCH_NAME: args.branchName,
+    DEPLOY_ENV: args.deployEnv,
+  });
+
+  console.log(`=== Pre-deploy hook complete ===`);
+}
 
 /**
  * Environment variables
@@ -45,7 +83,7 @@ function neonHeaders(apiKey: string): HeadersInit {
  * Fetches the project's default branch ID. Used by production deploys to
  * pair the Git default branch with the Neon default branch.
  */
-async function fetchDefaultBranchId(): Promise<string> {
+async function fetchDefaultBranch(): Promise<{ id: string; name: string }> {
   const projectId = requireEnv("NEON_PROJECT_ID");
   const apiKey = requireEnv("NEON_API_KEY");
 
@@ -59,7 +97,7 @@ async function fetchDefaultBranchId(): Promise<string> {
   }
 
   const result = (await res.json()) as {
-    branches: Array<{ id: string; default?: boolean }>;
+    branches: Array<{ id: string; name: string; default?: boolean }>;
   };
   const def = result.branches.find((b) => b.default);
 
@@ -68,7 +106,7 @@ async function fetchDefaultBranchId(): Promise<string> {
     process.exit(1);
   }
 
-  return def.id;
+  return { id: def.id, name: def.name };
 }
 
 /**
@@ -484,12 +522,20 @@ async function runWranglerWithSecrets(
 async function deployProduction(): Promise<void> {
   console.log("Production deploy — fetching default branch URI from Neon");
 
-  const branchId = await fetchDefaultBranchId();
+  const { id: branchId, name: branchName } = await fetchDefaultBranch();
   const { database, role } = await fetchDatabaseAndRole(branchId);
   const [pooled, unpooled] = await Promise.all([
     fetchConnectionUri(branchId, database, role, true),
     fetchConnectionUri(branchId, database, role, false),
   ]);
+
+  await runPreDeployHook({
+    pooledUri: pooled,
+    unpooledUri: unpooled,
+    branchId,
+    branchName,
+    deployEnv: "production",
+  });
 
   const wranglerConfig = await readWranglerConfig();
   const hyperdriveName = `${wranglerConfig.name as string}--production`;
@@ -531,6 +577,14 @@ async function deployPreview(): Promise<void> {
     fetchConnectionUri(branchId, database, role, true),
     fetchConnectionUri(branchId, database, role, false),
   ]);
+
+  await runPreDeployHook({
+    pooledUri: pooled,
+    unpooledUri: unpooled,
+    branchId,
+    branchName,
+    deployEnv: "preview",
+  });
 
   const wranglerConfig = await readWranglerConfig();
   const hyperdriveName = `${wranglerConfig.name as string}--preview--${safeBranch}`;
