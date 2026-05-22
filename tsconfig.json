@@ -9,6 +9,8 @@
     "verbatimModuleSyntax": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedSideEffectImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "types": ["./worker-configuration.d.ts", "bun"]
   }
 }
