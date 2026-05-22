@@ -17,13 +17,14 @@ export default {
     await client.connect();
 
     try {
-      // Sample SQL query
-      const result = await client.query("SELECT * FROM pg_tables LIMIT 1");
+      // Sample SQL query — reads from the `authors` table created and
+      // seeded by the Drizzle migrations in src/lib/db/migrations/.
+      const result = await client.query("SELECT * FROM authors ORDER BY id");
 
       // Clean up the client connection in the background
       ctx.waitUntil(client.end());
 
-      return Response.json({ result: result.rows });
+      return Response.json({ authors: result.rows });
     } catch (e) {
       return Response.json(
         { error: e instanceof Error ? e.message : e },
